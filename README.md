@@ -1,9 +1,5 @@
 # Local Weather Tracker
-
-A simple FastAPI + PostgreSQL application that fetches live weather data from the **Open-Meteo API**, stores it in a database, and allows you to manage the records through a REST API.
-
----
-
+A simple aplication to track the local weather from the Open-Meteo API
 ## Getting Started
 
 Follow these steps to run the project locally:
