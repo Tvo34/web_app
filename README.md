@@ -14,9 +14,8 @@ Follow these steps to run the project locally:
    cd web_app
    
 2. Set up the virtual environment
-   
+   ```bash
 python3 -m venv .venv
-
 source .venv/bin/activate
 
 4. Install dependencies
