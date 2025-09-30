@@ -26,9 +26,10 @@ Follow these steps to run the project locally:
 6. Set up PostgreSQL
 - install PostgreSQL
 - Create a database:
-CREATE DATABASE weatherdb;
+   ```bash
+   CREATE DATABASE weatherdb;
 
-CREATE TABLE observations (
+   CREATE TABLE observations (
     id SERIAL PRIMARY KEY,
     city TEXT,
     country TEXT,
@@ -40,10 +41,11 @@ CREATE TABLE observations (
     notes TEXT
 );
 
-5. Run the server 
-uvicorn finalproject_CSIS_LamVo:app --reload --port 8001
+5. Run the server
+   ```bash
+   uvicorn finalproject_CSIS_LamVo:app --reload --port 8001
 
-6. Open the app in your browser
+7. Open the app in your browser
 root URL: http://127.0.0.1:8001
 Swagger UI docs: http://127.0.0.1:8001/docs
 
