@@ -34,8 +34,7 @@ Follow these steps to run the project locally:
     temperature_c REAL,
     windspeed_kmh REAL,
     observation_time TIMESTAMP,
-    notes TEXT
-);
+    notes TEXT);
 
 5. Run the server
    ```bash
