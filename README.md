@@ -10,6 +10,6 @@ In this application, users can:
 - Delete an observation when it is no longer needed.  
 
 ## How to Run  
-```bash
+```bash.
 pip install -r requirements.txt
 python finalproject_CSIS_LamVo.py
