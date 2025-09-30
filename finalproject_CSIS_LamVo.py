@@ -3,20 +3,7 @@ from datetime import datetime
 
 
 class Observation:
-    """
-    A weather observation record.
-    
-    Attributes:
-        id (int): Auto-incremented observation ID.
-        city (str): City name.
-        country (str): Country name.
-        latitude (float): Latitude of the city.
-        longitude (float): Longitude of the city.
-        temperature_c (float): Current temperature in Celsius.
-        windspeed_kmh (float): Current wind speed in km/h.
-        observation_time (datetime): Observation timestamp.
-        notes (str, optional): User notes about the observation.
-    """
+    """Class to represent a weather observation with some information fields such as city, country, coordinates, temperature, wind speed, time of observation, and optional notes."""
 
     def __init__(self, obs_id, city, country, latitude, longitude, temp, windspeed, time, notes=None):
         self.id = obs_id
@@ -30,7 +17,7 @@ class Observation:
         self.notes = notes
 
     def __str__(self):
-        """Return a human-readable string representation of the observation."""
+        """String representation of the observation."""
         note_text = self.notes if self.notes else "No notes"
         return (f"[{self.id}] {self.city}, {self.country} | "
                 f"{self.temperature_c}°C, {self.windspeed_kmh} km/h | "
@@ -43,17 +30,8 @@ next_id = 1
 
 
 def fetch_weather(city, country):
-    """
-    Fetch live weather data from the Open-Meteo API.
-    
-    Args:
-        city (str): City name.
-        country (str): Country name.
-    
-    Returns:
-        tuple: (latitude, longitude, temperature, windspeed, datetime object)
-               or None if the city is not found.
-    """
+    """Get weather info for a city using Open-Meteo API."""
+
     geo_url = "https://geocoding-api.open-meteo.com/v1/search"
     geo_resp = requests.get(geo_url, params={"name": city, "count": 1})
     geo_data = geo_resp.json()
@@ -77,7 +55,7 @@ def fetch_weather(city, country):
 
 
 def add_observation(city, country):
-    """Create a new observation by calling the weather API."""
+    """Create a new observation and store it."""
     global next_id
     data = fetch_weather(city, country)
     if not data:
@@ -90,7 +68,7 @@ def add_observation(city, country):
 
 
 def list_observations():
-    """Display all stored observations."""
+    """List all stored observations."""
     if not observations:
         print("No observations available.")
     for obs in observations:
@@ -98,7 +76,7 @@ def list_observations():
 
 
 def update_observation_note(obs_id, note):
-    """Update the notes field of an observation by ID."""
+    """Update the notes for a specific observation by ID."""
     for obs in observations:
         if obs.id == obs_id:
             obs.notes = note
@@ -115,11 +93,11 @@ def delete_observation(obs_id):
 
 
 def menu():
-    """Console menu for interacting with the Local Weather Tracker."""
+    """Display the console menu."""
     print("Welcome to Local Weather Tracker")
     while True:
         print("\n--- MENU ---")
-        print("1. Add new observation")
+        print("1. Add your new observation")
         print("2. List all observations")
         print("3. Update an observation note")
         print("4. Delete an observation")
@@ -127,23 +105,23 @@ def menu():
 
         choice = input("Enter your choice: ")
         if choice == "1":
-            city = input("Enter city: ")
-            country = input("Enter country: ")
+            city = input("Enter the city that you want to observe: ")
+            country = input("Enter the country of the city: ")
             add_observation(city, country)
         elif choice == "2":
             list_observations()
         elif choice == "3":
-            obs_id = int(input("Enter observation ID: "))
+            obs_id = int(input("Enter the observation ID: "))
             note = input("Enter new note: ")
             update_observation_note(obs_id, note)
         elif choice == "4":
-            obs_id = int(input("Enter observation ID to delete: "))
+            obs_id = int(input("Enter the observation ID to delete: "))
             delete_observation(obs_id)
         elif choice == "5":
-            print("Goodbye!")
+            print("Goodbye! Have a nice day!")
             break
         else:
-            print("Invalid choice. Please try again.")
+            print("Invalid choice. Please try again!")
 
 
 if __name__ == "__main__":
