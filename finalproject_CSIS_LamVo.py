@@ -51,7 +51,7 @@ def fetch_weather(city: str, country: str):
 
 @app.post("/ingest")
 def ingest_weather(city: str, country: str):
-    """Fetch weather for a city, save it into PostgreSQL, and return the record."""
+    """Fetch weather data, save to DB, return record."""
     weather = fetch_weather(city, country)
     if not weather:
         raise HTTPException(status_code=404, detail="City not found")
@@ -66,6 +66,7 @@ def ingest_weather(city: str, country: str):
           weather["temperature_c"], weather["windspeed_kmh"], weather["observation_time"], weather["notes"]))
     obs_id = cur.fetchone()[0]
     conn.commit()
+    cur.close()
     conn.close()
 
     weather["id"] = obs_id
@@ -78,6 +79,7 @@ def list_observations():
     cur = conn.cursor()
     cur.execute("SELECT * FROM observations")
     rows = cur.fetchall()
+    cur.close()
     conn.close()
 
     results = []
@@ -102,6 +104,7 @@ def get_observation(obs_id: int):
     cur = conn.cursor()
     cur.execute("SELECT * FROM observations WHERE id = %s", (obs_id,))
     row = cur.fetchone()
+    cur.close()
     conn.close()
 
     if not row:
@@ -127,6 +130,7 @@ def update_observation(obs_id: int, notes: str):
     cur.execute("UPDATE observations SET notes = %s WHERE id = %s", (notes, obs_id))
     conn.commit()
     updated = cur.rowcount
+    cur.close()
     conn.close()
 
     if updated == 0:
@@ -142,6 +146,7 @@ def delete_observation(obs_id: int):
     cur.execute("DELETE FROM observations WHERE id = %s", (obs_id,))
     conn.commit()
     deleted = cur.rowcount
+    cur.close()
     conn.close()
 
     if deleted == 0:
