@@ -20,8 +20,8 @@ Follow these steps to run the project locally:
    source .venv/bin/activate
 
 4. Install dependencies
-
-pip install -r requirements.txt
+   ```bash
+   pip install -r requirements.txt
 
 6. Set up PostgreSQL
 - install PostgreSQL
