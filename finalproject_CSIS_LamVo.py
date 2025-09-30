@@ -1,43 +1,28 @@
 import requests
 from datetime import datetime
+from fastapi import FastAPI, HTTPException
+import psycopg2
+
+app = FastAPI(title="Local Weather Tracker")
+
+def get_connection():
+    """Return a connection to PostgreSQL database."""
+    return psycopg2.connect(
+        dbname="weatherdb",
+        user="jennie",   
+        password="",    
+        host="localhost",
+        port=5432
+    )
 
 
-class Observation:
-    """Class to represent a weather observation with some information fields such as city, country, coordinates, temperature, wind speed, time of observation, and optional notes."""
-
-    def __init__(self, obs_id, city, country, latitude, longitude, temp, windspeed, time, notes=None):
-        self.id = obs_id
-        self.city = city
-        self.country = country
-        self.latitude = latitude
-        self.longitude = longitude
-        self.temperature_c = temp
-        self.windspeed_kmh = windspeed
-        self.observation_time = time  
-        self.notes = notes
-
-    def __str__(self):
-        """String representation of the observation."""
-        note_text = self.notes if self.notes else "No notes"
-        return (f"[{self.id}] {self.city}, {self.country} | "
-                f"{self.temperature_c}°C, {self.windspeed_kmh} km/h | "
-                f"{self.observation_time.strftime('%Y-%m-%d %H:%M:%S')} | "
-                f"Notes: {note_text}")
-
-
-observations = []  
-next_id = 1        
-
-
-def fetch_weather(city, country):
-    """Get weather info for a city using Open-Meteo API."""
-
+def fetch_weather(city: str, country: str):
+    """Get live weather data for a city using Open-Meteo API."""
     geo_url = "https://geocoding-api.open-meteo.com/v1/search"
     geo_resp = requests.get(geo_url, params={"name": city, "count": 1})
     geo_data = geo_resp.json()
 
     if "results" not in geo_data or not geo_data["results"]:
-        print("City not found.")
         return None
 
     lat = geo_data["results"][0]["latitude"]
@@ -45,84 +30,121 @@ def fetch_weather(city, country):
 
     weather_url = "https://api.open-meteo.com/v1/forecast"
     weather_resp = requests.get(
-        weather_url, params={"latitude": lat, "longitude": lon, "current_weather": "true"}
+        weather_url,
+        params={"latitude": lat, "longitude": lon, "current_weather": "true"}
     )
     weather_data = weather_resp.json()["current_weather"]
 
     time_obj = datetime.fromisoformat(weather_data["time"].replace("Z", "+00:00"))
 
-    return lat, lon, weather_data["temperature"], weather_data["windspeed"], time_obj
+    return {
+        "city": city,
+        "country": country,
+        "latitude": lat,
+        "longitude": lon,
+        "temperature_c": weather_data["temperature"],
+        "windspeed_kmh": weather_data["windspeed"],
+        "observation_time": time_obj.isoformat(),
+        "notes": None
+    }
 
 
-def add_observation(city, country):
-    """Create a new observation and store it."""
-    global next_id
-    data = fetch_weather(city, country)
-    if not data:
-        return
-    lat, lon, temp, wind, time = data
-    obs = Observation(next_id, city, country, lat, lon, temp, wind, time)
-    observations.append(obs)
-    print(f"Added observation: {obs}")
-    next_id += 1
+@app.post("/ingest")
+def ingest_weather(city: str, country: str):
+    """Fetch weather for a city, save it into PostgreSQL, and return the record."""
+    weather = fetch_weather(city, country)
+    if not weather:
+        raise HTTPException(status_code=404, detail="City not found")
 
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("""
+        INSERT INTO observations (city, country, latitude, longitude, temperature_c, windspeed_kmh, observation_time, notes)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        RETURNING id
+    """, (weather["city"], weather["country"], weather["latitude"], weather["longitude"],
+          weather["temperature_c"], weather["windspeed_kmh"], weather["observation_time"], weather["notes"]))
+    obs_id = cur.fetchone()[0]
+    conn.commit()
+    conn.close()
 
+    weather["id"] = obs_id
+    return weather
+
+@app.get("/observations")
 def list_observations():
-    """List all stored observations."""
-    if not observations:
-        print("No observations available.")
-    for obs in observations:
-        print(obs)
+    """Retrieve all stored observations."""
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM observations")
+    rows = cur.fetchall()
+    conn.close()
 
+    results = []
+    for row in rows:
+        results.append({
+            "id": row[0],
+            "city": row[1],
+            "country": row[2],
+            "latitude": row[3],
+            "longitude": row[4],
+            "temperature_c": row[5],
+            "windspeed_kmh": row[6],
+            "observation_time": row[7],
+            "notes": row[8]
+        })
+    return results
 
-def update_observation_note(obs_id, note):
-    """Update the notes for a specific observation by ID."""
-    for obs in observations:
-        if obs.id == obs_id:
-            obs.notes = note
-            print(f"Note updated for observation {obs_id}.")
-            return
-    print("Observation ID not found.")
+@app.get("/observations/{obs_id}")
+def get_observation(obs_id: int):
+    """Retrieve a specific observation by ID."""
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM observations WHERE id = %s", (obs_id,))
+    row = cur.fetchone()
+    conn.close()
 
+    if not row:
+        raise HTTPException(status_code=404, detail="Observation not found")
 
-def delete_observation(obs_id):
+    return {
+        "id": row[0],
+        "city": row[1],
+        "country": row[2],
+        "latitude": row[3],
+        "longitude": row[4],
+        "temperature_c": row[5],
+        "windspeed_kmh": row[6],
+        "observation_time": row[7],
+        "notes": row[8]
+    }
+
+@app.put("/observations/{obs_id}")
+def update_observation(obs_id: int, notes: str):
+    """Update the notes field of an observation by ID."""
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("UPDATE observations SET notes = %s WHERE id = %s", (notes, obs_id))
+    conn.commit()
+    updated = cur.rowcount
+    conn.close()
+
+    if updated == 0:
+        raise HTTPException(status_code=404, detail="Observation not found")
+
+    return {"id": obs_id, "notes": notes}
+
+@app.delete("/observations/{obs_id}")
+def delete_observation(obs_id: int):
     """Delete an observation by ID."""
-    global observations
-    observations = [obs for obs in observations if obs.id != obs_id]
-    print(f"Observation {obs_id} deleted.")
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("DELETE FROM observations WHERE id = %s", (obs_id,))
+    conn.commit()
+    deleted = cur.rowcount
+    conn.close()
 
+    if deleted == 0:
+        raise HTTPException(status_code=404, detail="Observation not found")
 
-def menu():
-    """Display the console menu."""
-    print("Welcome to Local Weather Tracker")
-    while True:
-        print("\n--- MENU ---")
-        print("1. Add your new observation")
-        print("2. List all observations")
-        print("3. Update an observation note")
-        print("4. Delete an observation")
-        print("5. Exit")
-
-        choice = input("Enter your choice: ")
-        if choice == "1":
-            city = input("Enter the city that you want to observe: ")
-            country = input("Enter the country of the city: ")
-            add_observation(city, country)
-        elif choice == "2":
-            list_observations()
-        elif choice == "3":
-            obs_id = int(input("Enter the observation ID: "))
-            note = input("Enter new note: ")
-            update_observation_note(obs_id, note)
-        elif choice == "4":
-            obs_id = int(input("Enter the observation ID to delete: "))
-            delete_observation(obs_id)
-        elif choice == "5":
-            print("Goodbye! Have a nice day!")
-            break
-        else:
-            print("Invalid choice. Please try again!")
-
-
-if __name__ == "__main__":
-    menu()
+    return {"deleted": obs_id}
