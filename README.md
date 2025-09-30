@@ -1,15 +1,47 @@
-# Local Weather Tracker  
+# Local Weather Tracker
 
-This is my final project written about an application to track local weather.  
-The program uses the **Open-Meteo API** to fetch live weather data.  
+A simple FastAPI + PostgreSQL application that fetches live weather data from the **Open-Meteo API**, stores it in a database, and allows you to manage the records through a REST API.
 
-In this application, users can:  
-- Add a new weather observation (city, country, temperature, wind speed, and time).  
-- List all stored observations.  
-- Update the notes field of a specific observation.  
-- Delete an observation when it is no longer needed.  
+---
 
-## How to Run  
-```bash.
+## Getting Started
+
+Follow these steps to run the project locally:
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/your-username/web_app.git
+   cd web_app
+2. Set up the virtual environment
+python3 -m venv .venv
+source .venv/bin/activate
+3. Install dependencies
 pip install -r requirements.txt
-python finalproject_CSIS_LamVo.py
+4. Set up PostgreSQL
+- install PostgreSQL
+- Create a database:
+CREATE DATABASE weatherdb;
+
+CREATE TABLE observations (
+    id SERIAL PRIMARY KEY,
+    city TEXT,
+    country TEXT,
+    latitude REAL,
+    longitude REAL,
+    temperature_c REAL,
+    windspeed_kmh REAL,
+    observation_time TIMESTAMP,
+    notes TEXT
+);
+
+5. Run the server 
+uvicorn finalproject_CSIS_LamVo:app --reload --port 8001
+
+6. Open the app in your browser
+root URL: http://127.0.0.1:8001
+Swagger UI docs: http://127.0.0.1:8001/docs
+
+### What the project does
+- Fetches live weather data (temperature, windspeed, time) for a specific city.
+- Stores the weather observation into PostgreSQL.
+- Provides endpoints to: Create a new weather observation (POST /ingest), Read all or one observation (GET /observations, GET /observations/{id}), Update notes for an observation (PUT /observations/{id}), Delete an observation (DELETE /observations/{id}).
