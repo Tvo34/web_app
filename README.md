@@ -47,7 +47,7 @@ Swagger UI docs: http://127.0.0.1:8001/docs
 ### What the project does
 - Fetches live weather data (temperature, windspeed, time) for a specific city.
 - Stores the weather observation into PostgreSQL.
-- Provides endpoints to: Create a new weather observation (POST /ingest), Read all or one observation (GET /observations, GET /observations/{id}), Update notes for an observation (PUT /observations/{id}), Delete an observation (DELETE /observations/{id}).
+- Provides endpoints to: Create a new weather observation (POST /ingest), Read all or one observation (GET /observations, GET /observations/{id}), Update notes for an observation (PUT /observations/{id}), Delete an observation (DELETE /observationn).
 
 ### Author
 Lam Hoai Trung Vo 
